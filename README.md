@@ -1,164 +1,191 @@
-# RAG系统使用说明
+<div align="center">
 
-这是一个基于本地向量模型和OpenRouter驱动的深度学习模型构建的检索增强生成（RAG）系统。该系统可以对Markdown文档进行索引，并根据用户的查询提供基于文档内容的智能回答。
+# factor-rag
 
-## 系统架构
+**Structure-preserving RAG for visually rich documents.**
+Tables, figures, and formulas survive chunking intact — instead of being sliced apart by a character counter.
 
-RAG系统由以下主要组件构成：
+[![tests](https://github.com/Lam810/factor_mining-rag/actions/workflows/tests.yml/badge.svg)](https://github.com/Lam810/factor_mining-rag/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
+[![Zero-dependency core](https://img.shields.io/badge/core%20deps-tqdm%20only-brightgreen.svg)](pyproject.toml)
 
-1. **向量模型**：使用VLLM驱动的`intfloat/e5-mistral-7b-instruct`模型，用于生成文本的嵌入向量。
-2. **LLM模型**：使用OpenRouter API驱动的`deepseek/deepseek-r1-zero:free`模型，用于生成回复。
-3. **文档处理器**：负责加载和分割Markdown文档。
-4. **向量数据库**：使用ChromaDB存储和检索文档向量。
-5. **RAG系统**：整合以上组件，提供完整的检索增强生成功能。
-
-```
-┌─────────────┐        ┌────────────────┐        ┌───────────────┐
-│ Markdown文档 │───────>│ 文档处理器     │───────>│ 向量模型      │
-└─────────────┘        └────────────────┘        └───────┬───────┘
-                                                         │
-                                                         ▼
-                       ┌────────────────┐        ┌───────────────┐
-                       │ 用户查询       │───────>│ 向量模型      │
-                       └────────────────┘        └───────┬───────┘
-                                                         │
-                                                         ▼
-┌─────────────┐        ┌────────────────┐        ┌───────────────┐
-│ 生成回复    │<───────│ LLM模型        │<───────│ 向量数据库    │
-└─────────────┘        └────────────────┘        └───────────────┘
-```
-
-## 功能特点
-
-- **处理Markdown文档**：自动加载和分割Markdown文件，支持批量处理。
-- **并发处理**：支持并行处理大量文档，高效生成嵌入向量。
-- **语义检索**：基于向量相似度的精准文档检索。
-- **上下文感知**：将检索到的相关文档作为上下文提供给LLM模型。
-- **持久化存储**：向量数据库支持持久化，索引结果可以重复使用。
-
-## 安装指南
-
-### 环境要求
-
-- Python 3.8+
-- CUDA支持（推荐用于加速向量模型）
-
-### 安装步骤
-
-1. 确保已经安装所有必要的依赖库：
-
-```bash
-source /root/autodl-fs/rag_venv/bin/activate
-pip install openrouter vllm langchain langchain-openrouter langchain_community sentence-transformers chromadb tqdm multiprocessing-on-dill
-```
-
-2. 配置OpenRouter API密钥
-
-   在使用系统前，需要设置OpenRouter API密钥。可以通过以下方式：
-
-   - 在`config.py`中直接设置`OPENROUTER_API_KEY`
-   - 设置环境变量`OPENROUTER_API_KEY`
-   - 在实例化RAG系统时提供API密钥
-
-## 使用方法
-
-### 基本使用
-
-```python
-# 导入RAG系统
-from rag_system.rag_system import get_rag_system
-
-# 初始化RAG系统（提供API密钥）
-rag = get_rag_system(api_key="your_openrouter_api_key")
-
-# 索引一个或多个文档
-rag.index_documents(["/path/to/document1.md", "/path/to/document2.md"])
-
-# 或者索引整个目录
-rag.index_directory("/path/to/documents/", pattern="*.md")
-
-# 执行查询
-response = rag.query("你的问题")
-print(response)
-```
-
-### 测试脚本
-
-系统提供了一个测试脚本，可以验证各组件功能：
-
-```bash
-cd /root/autodl-fs
-source rag_venv/bin/activate
-python -m rag_system.test_rag_system --api_key="your_openrouter_api_key"
-```
-
-可以使用以下参数测试特定功能：
-
-- `--test_vector`：测试向量模型
-- `--test_llm`：测试LLM模型
-- `--test_doc`：测试文档处理
-- `--test_rag`：测试完整RAG系统
-- `--test_dir_index`：测试目录索引
-- `--test_all`：测试所有功能（默认）
-
-## 配置选项
-
-系统参数可以在`config.py`中配置：
-
-- **向量模型**：可以更改模型名称和任务类型
-- **块大小**：文档分割的块大小和重叠量
-- **检索数量**：每次查询返回的相似文档数量
-- **并发数**：文档处理的并发数量
-
-## 常见问题
-
-**Q: 是否支持中文文档？**  
-A: 是的，系统完全支持中文文档的处理和查询。
-
-**Q: 如何处理大量文档？**  
-A: 系统采用并行处理方式，可以高效处理大量文档。通过调整`MAX_WORKERS`参数可以控制并发度。
-
-**Q: 向量数据库的存储位置在哪里？**  
-A: 向量数据库默认存储在`/root/autodl-fs/rag_system/data/vector_db`目录下。
-
-**Q: 如何清除已索引的数据？**  
-A: 可以使用以下代码清除集合：
-```python
-from rag_system.utils.vector_db import get_vector_db
-db = get_vector_db()
-db.delete_collection()
-```
-
-## 系统扩展
-
-RAG系统设计为模块化结构，可以方便地扩展和定制：
-
-- **替换向量模型**：修改`config.py`中的`VECTOR_MODEL`参数
-- **更换LLM模型**：修改`config.py`中的`OPENROUTER_MODEL`参数
-- **添加文档类型**：扩展`document_processor.py`中的处理方法
-- **优化检索逻辑**：修改`vector_db.py`中的搜索方法
-
-## 开发者指南
-
-系统采用单例模式设计，各组件可以独立使用：
-
-```python
-# 使用向量模型
-from rag_system.models.vector_model import get_vector_model
-vector_model = get_vector_model()
-embedding = vector_model("测试文本")
-
-# 使用文档处理器
-from rag_system.utils.document_processor import get_document_processor
-processor = get_document_processor()
-documents = processor.process_document("/path/to/document.md")
-
-# 使用向量数据库
-from rag_system.utils.vector_db import get_vector_db
-db = get_vector_db()
-db.add_documents(documents_with_embeddings)
-```
+</div>
 
 ---
 
-希望这个RAG系统能够满足您的需求！如有任何问题或建议，请随时提出。
+## The problem, in one picture
+
+Feed a PDF through a layout parser (MinerU, Marker, PP-StructureV2, Nougat, ...) and you get Markdown that is
+mostly *structure*: multi-page pipe tables, figure references, fenced formulas, a heading hierarchy. Almost
+every RAG tutorial then chunks that Markdown with a character-window splitter — cut every *N* characters,
+nudge the boundary to the nearest paragraph break. That splitter has no idea a table exists. It cuts a
+40-row table in half, and the second half becomes a chunk full of bare numbers with no header, no units, no
+name — unretrievable by an embedding model and unreadable by an LLM.
+
+Below is the same real-world-shaped document (a 124-line factor-attribution report, one of the three sample
+documents in [`samples/`](samples/)), chunked both ways at an identical, realistic setting
+(`chunk_size=1000`). Every bar is one line of source text, both columns share the same vertical scale, and
+red marks a table row that lost its header:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/structure-map-dark.svg">
+  <img alt="Chunk boundaries over one document: character-window chunking orphans 60 of 94 table rows from their header; structure-aware chunking orphans zero." src="assets/structure-map-light.svg">
+</picture>
+
+That is not a contrived worst case — it is the default behavior of the chunking code in most RAG tutorials
+and starter templates, on a table of perfectly ordinary size. This repository is the fix, plus the tooling
+to measure it instead of assuming it.
+
+## What's actually in here
+
+- **`factor_rag.chunking`** — a structure-aware Markdown chunker. It parses the document into semantic
+  blocks (heading, table, fenced code, figure+caption, list, paragraph) *before* deciding where to cut, so a
+  cut only ever lands between blocks, never through one. An oversized table is split into parts that each
+  repeat the header row; an oversized code block re-opens its fence in every part; a figure is never
+  separated from its caption; every chunk is tagged with the heading breadcrumb of the section it came from.
+  Zero dependencies beyond the standard library.
+- **`factor_rag.metrics`** — turns "this chunking is better" from a vibe into a number: table integrity, the
+  fraction of table rows that keep their header, section attribution, figure/caption adjacency — computed
+  from chunk text alone, so any chunker (not just this one) can be scored on equal terms.
+- **`factor_rag.viz`** — the two figures in this README, as dependency-free SVG generation. No matplotlib, no
+  browser, no headless Chrome; `git diff` on a regenerated figure is a readable text diff.
+- **`benchmarks/run_benchmark.py`** — runs the metrics over a sample corpus and regenerates both figures. One
+  command, no GPU, no API key, fully reproducible from a clean clone.
+- **A retrieval + generation pipeline** (`factor_rag.rag_system`, `vector_db`, `document_processor`,
+  `models/`) wired to the chunker above, for going from a folder of Markdown to an answered question. This
+  half needs a GPU (for the default local embedder) and an OpenRouter API key — see
+  [Running without a GPU](#running-without-a-gpu) for the CPU path.
+
+## Results
+
+Mean over the 3-document sample corpus in [`samples/`](samples/), `chunk_size=1000`, `chunk_overlap=200` —
+reproduce with `python benchmarks/run_benchmark.py`:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/fidelity-dark.svg">
+  <img alt="Structural fidelity after chunking: table integrity 78% to 100%, table rows keeping their header 79% to 100%, chunks that can name their section 81% to 100%, figures still beside their caption 100% to 100%." src="assets/fidelity-light.svg">
+</picture>
+
+| Metric | Character-window baseline | Structure-aware | 
+| --- | ---: | ---: |
+| Table integrity (whole tables kept intact) | 78% | **100%** |
+| Table rows that keep their header | 79% | **100%** |
+| Chunks that can name their own section | 81% | **100%** |
+| Figures still next to their caption | 100% | 100% |
+
+Figure/caption adjacency ties at this chunk size: the sample corpus's captions sit close enough to their
+images that even a blind character window rarely separates them. Tables are the load-bearing failure mode —
+they run for dozens of rows, so *any* fixed-size window eventually lands inside one. That is also exactly
+the content type "visually rich document" RAG exists to handle, which is why table integrity is the headline
+number here rather than a footnote.
+
+## Quickstart
+
+```bash
+pip install "factor-rag[serve] @ git+https://github.com/Lam810/factor_mining-rag.git"
+# or, for just the chunker/metrics/viz (zero extra dependencies):
+pip install "factor-rag @ git+https://github.com/Lam810/factor_mining-rag.git"
+```
+
+```python
+from factor_rag import chunk_markdown, score_chunks
+
+markdown = open("quarterly_report.md", encoding="utf-8").read()
+
+chunks = chunk_markdown(markdown, source="quarterly_report.md", chunk_size=1000, chunk_overlap=200)
+for c in chunks[:2]:
+    print(c.metadata["heading_path"], "|", c.metadata["block_kinds"])
+    print(c.text[:200], "...\n")
+
+# Score it against your own baseline chunker -- score_chunks only looks at
+# chunk text, so it works for any strategy, not just this one.
+report = score_chunks(markdown, [c.text for c in chunks])
+print(f"table integrity: {report.table_integrity:.0%}")
+```
+
+For the full retrieval + generation pipeline:
+
+```python
+import os
+os.environ["OPENROUTER_API_KEY"] = "sk-or-..."
+
+from factor_rag.rag_system import get_rag_system
+
+rag = get_rag_system()
+rag.index_directory("samples/", pattern="*.md")
+print(rag.query("Which industries drove the active return?"))
+```
+
+## Running without a GPU
+
+The chunker, metrics, and figure generation (the three modules above) need nothing but `tqdm` and run
+anywhere. The retrieval pipeline's default embedder is a 7B instruction-tuned model served through vLLM,
+which does need a GPU. To run the full pipeline on CPU, point it at a small `sentence-transformers`
+checkpoint instead:
+
+```bash
+export FACTOR_RAG_VECTOR_MODEL=BAAI/bge-small-zh-v1.5
+export FACTOR_RAG_VECTOR_BACKEND=sentence-transformers
+```
+
+(`sentence-transformers` backend wiring is a good first contribution — see [Roadmap](#roadmap).)
+
+## How it works
+
+```
+                    ┌────────────────────┐
+  Markdown  ───────▶│   parse_blocks()   │  heading / table / code / figure / list / paragraph
+  (from a layout    └─────────┬──────────┘
+   parser: MinerU,            │
+   Marker, PP-Struct...)      ▼
+                    ┌────────────────────┐
+                    │  chunk_markdown()  │  packs whole blocks into a budget;
+                    │                    │  splits an oversized block WITHOUT
+                    │                    │  breaking it (repeat header / re-open
+                    │                    │  fence / never split a figure)
+                    └─────────┬──────────┘
+                              ▼
+                 Chunk(text, metadata={heading_path,
+                       chunk_uid, has_table, has_figure, ...})
+                              │
+              ┌───────────────┼────────────────┐
+              ▼                                 ▼
+   score_chunks() / viz.py            embed → ChromaDB → OpenRouter LLM
+   (measure any chunker,               (factor_rag.rag_system —
+    no GPU, no deps)                    needs a GPU + API key)
+```
+
+## Roadmap
+
+- [ ] `sentence-transformers` embedding backend, so the full pipeline runs end-to-end on CPU.
+- [ ] Ascend (昇腾) NPU backend for the embedding step, via `torch_npu`. In progress in a sibling project
+      ([`visual-document-rag`](https://github.com/Lam810/visual-document-rag)) — not yet verified on real
+      Ascend hardware, so it is listed here as planned rather than claimed.
+- [ ] A recursive variant that also parses nested structures (a table inside a list item), which current
+      layout-parser output does not produce but hand-written Markdown sometimes does.
+- [ ] FAISS / Qdrant backends alongside ChromaDB.
+
+Contributions welcome — `tests/` has 19 fast, dependency-free tests (`pytest`) covering exactly the failure
+modes described above; a PR that adds a case this suite doesn't catch is a very welcome PR.
+
+## Citation
+
+If this chunker or its benchmark methodology is useful in your own work, please cite it:
+
+```bibtex
+@software{lin2026factorrag,
+  author  = {Lin, Zeteng},
+  title   = {factor-rag: Structure-Preserving RAG for Visually Rich Documents},
+  year    = {2026},
+  url     = {https://github.com/Lam810/factor_mining-rag},
+  note    = {Hong Kong University of Science and Technology (Guangzhou)}
+}
+```
+
+(GitHub's "Cite this repository" button, top right, generates the same citation from
+[`CITATION.cff`](CITATION.cff) in APA or BibTeX.)
+
+## License
+
+[MIT](LICENSE) © 2026 Zeteng Lin, Hong Kong University of Science and Technology (Guangzhou)

@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "factor-rag: Structure-Preserving RAG for Visually Rich Documents"
+authors:
+  - family-names: "Lin"
+    given-names: "Zeteng"
+    affiliation: "Hong Kong University of Science and Technology (Guangzhou)"
+version: 0.1.0
+date-released: "2026-08-31"
+url: "https://github.com/Lam810/factor_mining-rag"
+repository-code: "https://github.com/Lam810/factor_mining-rag"
+license: MIT
+keywords:
+  - retrieval-augmented-generation
+  - rag
+  - markdown
+  - chunking
+  - document-ai
+  - visually-rich-documents

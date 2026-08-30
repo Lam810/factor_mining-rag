@@ -1,0 +1,108 @@
+{
+  "chunk_size": 1000,
+  "overlap": 200,
+  "documents": {
+    "factor_momentum.md": {
+      "baseline": {
+        "n_chunks": 9,
+        "mean_chunk_chars": 701.6666666666666,
+        "table_integrity": 1.0,
+        "row_header_coverage": 1.0,
+        "section_attribution": 0.8888888888888888,
+        "code_integrity": 0.8888888888888888,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 6,
+        "n_table_rows": 40,
+        "n_code_blocks": 1,
+        "n_figures": 2
+      },
+      "structured": {
+        "n_chunks": 10,
+        "mean_chunk_chars": 566.3,
+        "table_integrity": 1.0,
+        "row_header_coverage": 1.0,
+        "section_attribution": 1.0,
+        "code_integrity": 1.0,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 6,
+        "n_table_rows": 40,
+        "n_code_blocks": 1,
+        "n_figures": 2
+      }
+    },
+    "factor_value_cn.md": {
+      "baseline": {
+        "n_chunks": 4,
+        "mean_chunk_chars": 643.75,
+        "table_integrity": 1.0,
+        "row_header_coverage": 1.0,
+        "section_attribution": 1.0,
+        "code_integrity": 1.0,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 3,
+        "n_table_rows": 27,
+        "n_code_blocks": 1,
+        "n_figures": 1
+      },
+      "structured": {
+        "n_chunks": 6,
+        "mean_chunk_chars": 347.1666666666667,
+        "table_integrity": 1.0,
+        "row_header_coverage": 1.0,
+        "section_attribution": 1.0,
+        "code_integrity": 1.0,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 3,
+        "n_table_rows": 27,
+        "n_code_blocks": 1,
+        "n_figures": 1
+      }
+    },
+    "multifactor_attribution.md": {
+      "baseline": {
+        "n_chunks": 9,
+        "mean_chunk_chars": 924.4444444444445,
+        "table_integrity": 0.3333333333333333,
+        "row_header_coverage": 0.3617021276595745,
+        "section_attribution": 0.5555555555555556,
+        "code_integrity": 1.0,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 3,
+        "n_table_rows": 94,
+        "n_code_blocks": 1,
+        "n_figures": 2
+      },
+      "structured": {
+        "n_chunks": 15,
+        "mean_chunk_chars": 598.5333333333333,
+        "table_integrity": 1.0,
+        "row_header_coverage": 1.0,
+        "section_attribution": 1.0,
+        "code_integrity": 1.0,
+        "figure_caption_adjacency": 1.0,
+        "n_tables": 3,
+        "n_table_rows": 94,
+        "n_code_blocks": 1,
+        "n_figures": 2
+      }
+    }
+  },
+  "aggregate": {
+    "table_integrity": {
+      "baseline": 0.7777777777777778,
+      "structured": 1.0
+    },
+    "row_header_coverage": {
+      "baseline": 0.7872340425531915,
+      "structured": 1.0
+    },
+    "section_attribution": {
+      "baseline": 0.8148148148148149,
+      "structured": 1.0
+    },
+    "figure_caption_adjacency": {
+      "baseline": 1.0,
+      "structured": 1.0
+    }
+  }
+}

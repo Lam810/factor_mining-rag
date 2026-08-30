@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="788" height="316" viewBox="0 0 788 316" role="img" aria-label="Structural fidelity after chunking">
+<rect width="788" height="316" fill="#1a1a19"/>
+<text x="32.0" y="36.0" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" text-anchor="start" opacity="1">Structural fidelity after chunking</text>
+<text x="32.0" y="56.0" fill="#c3c2b7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start" opacity="1">Mean over the 3-document sample corpus, chunk size 1000 characters. Higher is better.</text>
+<rect x="32.0" y="68.0" width="14.0" height="8.0" rx="2" fill="#d95926" opacity="1"/>
+<text x="52.0" y="76.0" fill="#c3c2b7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start" opacity="1">Character-window baseline</text>
+<rect x="218.0" y="68.0" width="14.0" height="8.0" rx="2" fill="#3987e5" opacity="1"/>
+<text x="238.0" y="76.0" fill="#c3c2b7" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" text-anchor="start" opacity="1">Structure-aware</text>
+<line x1="264.0" y1="80.0" x2="264.0" y2="262.0" stroke="#383835" stroke-width="1"/>
+<text x="264.0" y="278.0" fill="#8f8e85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle" opacity="1">0%</text>
+<line x1="371.5" y1="80.0" x2="371.5" y2="262.0" stroke="#383835" stroke-width="1"/>
+<text x="371.5" y="278.0" fill="#8f8e85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle" opacity="1">25%</text>
+<line x1="479.0" y1="80.0" x2="479.0" y2="262.0" stroke="#383835" stroke-width="1"/>
+<text x="479.0" y="278.0" fill="#8f8e85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle" opacity="1">50%</text>
+<line x1="586.5" y1="80.0" x2="586.5" y2="262.0" stroke="#383835" stroke-width="1"/>
+<text x="586.5" y="278.0" fill="#8f8e85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle" opacity="1">75%</text>
+<line x1="694.0" y1="80.0" x2="694.0" y2="262.0" stroke="#383835" stroke-width="1"/>
+<text x="694.0" y="278.0" fill="#8f8e85" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="400" text-anchor="middle" opacity="1">100%</text>
+<text x="250.0" y="112.0" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" text-anchor="end" opacity="1">Table integrity</text>
+<path d="M264.0 92.0 H594.4 A4.0 4.0 0 0 1 598.4 96.0 V103.0 A4.0 4.0 0 0 1 594.4 107.0 H264.0 Z" fill="#d95926"/>
+<text x="606.4" y="104.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">78%</text>
+<path d="M264.0 109.0 H690.0 A4.0 4.0 0 0 1 694.0 113.0 V120.0 A4.0 4.0 0 0 1 690.0 124.0 H264.0 Z" fill="#3987e5"/>
+<text x="702.0" y="121.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">100%</text>
+<text x="250.0" y="158.0" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" text-anchor="end" opacity="1">Table rows keeping their header</text>
+<path d="M264.0 138.0 H598.5 A4.0 4.0 0 0 1 602.5 142.0 V149.0 A4.0 4.0 0 0 1 598.5 153.0 H264.0 Z" fill="#d95926"/>
+<text x="610.5" y="150.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">79%</text>
+<path d="M264.0 155.0 H690.0 A4.0 4.0 0 0 1 694.0 159.0 V166.0 A4.0 4.0 0 0 1 690.0 170.0 H264.0 Z" fill="#3987e5"/>
+<text x="702.0" y="167.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">100%</text>
+<text x="250.0" y="204.0" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" text-anchor="end" opacity="1">Chunks that can name their section</text>
+<path d="M264.0 184.0 H610.4 A4.0 4.0 0 0 1 614.4 188.0 V195.0 A4.0 4.0 0 0 1 610.4 199.0 H264.0 Z" fill="#d95926"/>
+<text x="622.4" y="196.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">81%</text>
+<path d="M264.0 201.0 H690.0 A4.0 4.0 0 0 1 694.0 205.0 V212.0 A4.0 4.0 0 0 1 690.0 216.0 H264.0 Z" fill="#3987e5"/>
+<text x="702.0" y="213.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">100%</text>
+<text x="250.0" y="250.0" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="500" text-anchor="end" opacity="1">Figures still beside their caption</text>
+<path d="M264.0 230.0 H690.0 A4.0 4.0 0 0 1 694.0 234.0 V241.0 A4.0 4.0 0 0 1 690.0 245.0 H264.0 Z" fill="#d95926"/>
+<text x="702.0" y="242.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">100%</text>
+<path d="M264.0 247.0 H690.0 A4.0 4.0 0 0 1 694.0 251.0 V258.0 A4.0 4.0 0 0 1 690.0 262.0 H264.0 Z" fill="#3987e5"/>
+<text x="702.0" y="259.0" fill="#c3c2b7" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11.5" font-weight="600" text-anchor="start" opacity="1">100%</text>
+</svg>

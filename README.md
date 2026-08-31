@@ -12,6 +12,8 @@ so a 48-row financial table stops arriving at your model cut in half and missing
 [![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen.svg)](tests/)
 [![Zero heavy deps](https://img.shields.io/badge/chunker%20deps-0-orange.svg)](#install)
 
+**English** · [简体中文](README.zh-CN.md)
+
 </div>
 
 ---

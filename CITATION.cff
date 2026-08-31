@@ -1,19 +1,24 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "factor-rag: Structure-Preserving RAG for Visually Rich Documents"
+title: "factor-rag: Structure-Aware Chunking for Retrieval over Visually Rich Documents"
+abstract: >-
+  A Markdown chunker for retrieval-augmented generation over documents converted
+  from PDF by a layout parser. It keeps pipe tables, fenced blocks and figure
+  captions intact, repeats table headers across split parts, and attaches heading
+  breadcrumbs to every chunk. Ships a metric suite and a reproducible benchmark
+  for scoring any chunking strategy on structural fidelity.
+type: software
 authors:
-  - family-names: "Lin"
-    given-names: "Zeteng"
-    affiliation: "Hong Kong University of Science and Technology (Guangzhou)"
-version: 0.1.0
-date-released: "2026-08-31"
-url: "https://github.com/Lam810/factor_mining-rag"
+  - family-names: Lin
+    given-names: Zeteng
+    affiliation: "The Hong Kong University of Science and Technology (Guangzhou)"
 repository-code: "https://github.com/Lam810/factor_mining-rag"
 license: MIT
+version: 0.2.0
+date-released: "2026-08-31"
 keywords:
-  - retrieval-augmented-generation
-  - rag
-  - markdown
-  - chunking
-  - document-ai
-  - visually-rich-documents
+  - retrieval-augmented generation
+  - document chunking
+  - visually rich documents
+  - table extraction
+  - information retrieval

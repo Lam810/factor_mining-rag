@@ -1,86 +1,103 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Embedding backends.
 
-"""Embedding model, served locally through vLLM.
-
-This is the GPU-heavy half of the pipeline: the default checkpoint is a 7B
-instruction-tuned embedder. See the project README ("Running without a GPU")
-for a CPU-only alternative -- this module intentionally does not fall back to
-one silently, so a missing GPU fails loudly at model load rather than
-producing degraded embeddings without saying so.
+Two are provided.  ``SentenceTransformerEmbedder`` is the default: it runs on
+CPU, needs no server, and is what the quickstart uses.  ``VLLMEmbedder`` keeps
+the original vLLM path for GPU throughput, with the output unwrapping corrected
+-- ``LLM.embed`` returns request objects, and the published code passed those
+straight into NumPy instead of reading ``.outputs.embedding`` off them.
 
 Author: Zeteng Lin (Hong Kong University of Science and Technology, Guangzhou)
 """
 
-from typing import Any, Dict, List, Union
+from __future__ import annotations
 
-import numpy as np
-import torch
-from tqdm import tqdm
-from vllm import LLM
+import logging
+from typing import Any, Dict, List, Optional, Sequence, Union
 
-from ..config import MAX_WORKERS, VECTOR_MODEL, VECTOR_MODEL_TASK
+from ..config import VECTOR_MODEL, VECTOR_MODEL_TASK
+
+logger = logging.getLogger(__name__)
 
 
-class VectorEmbedder:
-    """Text embedding model served through vLLM."""
+class SentenceTransformerEmbedder:
+    """CPU-friendly default backend."""
 
-    def __init__(self, model: str = VECTOR_MODEL, task: str = VECTOR_MODEL_TASK):
-        """
-        Args:
-            model: Embedding model name or local path.
-            task: vLLM task type -- ``"embed"`` for this pipeline.
-        """
+    def __init__(self, model: str = VECTOR_MODEL, device: Optional[str] = None) -> None:
+        from sentence_transformers import SentenceTransformer
+
         self.model_name = model
-        self.task = task
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        if self.device == "cpu":
-            raise RuntimeError(
-                f"No CUDA device visible; refusing to load {model!r} on CPU via vLLM. "
-                "Set FACTOR_RAG_VECTOR_MODEL to a small sentence-transformers checkpoint "
-                "and FACTOR_RAG_VECTOR_BACKEND=sentence-transformers to run without a GPU "
-                "(see README: 'Running without a GPU')."
-            )
+        self.model = SentenceTransformer(model, device=device)
+        logger.info("loaded embedding model %s", model)
 
-        self.llm = LLM(model=model, task=task)
+    def embed(self, text: Union[str, Sequence[str]], batch_size: int = 32):
+        single = isinstance(text, str)
+        payload = [text] if single else list(text)
+        vectors = self.model.encode(
+            payload, batch_size=batch_size, normalize_embeddings=True, show_progress_bar=False
+        )
+        return vectors[0] if single else vectors
 
-    def embed(self, text: Union[str, List[str]], batch_size: int = 32) -> np.ndarray:
-        """Embed a string or a list of strings.
-
-        Args:
-            text: A single string, or a list of strings.
-            batch_size: Batch size used when ``text`` is a list.
-
-        Returns:
-            A single embedding vector, or a 2D array of embeddings.
-        """
-        if isinstance(text, str):
-            return self.llm.embed(text)[0]
-
-        results = []
-        for i in tqdm(range(0, len(text), batch_size), desc="Embedding"):
-            batch = text[i : i + batch_size]
-            results.extend(self.llm.embed(t)[0] for t in batch)
-        return np.array(results)
-
-    def embed_documents(self, documents: List[Dict[str, Any]], text_key: str = "text") -> List[Dict[str, Any]]:
-        """Attach an ``"embedding"`` key to each document in ``documents``."""
-        texts = [doc[text_key] for doc in documents]
-        embeddings = self.embed(texts)
-        for doc, embedding in zip(documents, embeddings):
-            doc["embedding"] = embedding
+    def embed_documents(
+        self, documents: List[Dict[str, Any]], text_key: str = "text"
+    ) -> List[Dict[str, Any]]:
+        vectors = self.embed([d[text_key] for d in documents])
+        for doc, vector in zip(documents, vectors):
+            doc["embedding"] = vector
         return documents
 
-    def __call__(self, text: Union[str, List[str]]) -> np.ndarray:
+    def __call__(self, text):
         return self.embed(text)
 
+
+class VLLMEmbedder:
+    """vLLM backend, for GPU throughput on large corpora."""
+
+    def __init__(self, model: str = VECTOR_MODEL, task: str = VECTOR_MODEL_TASK) -> None:
+        from vllm import LLM
+
+        self.model_name = model
+        self.llm = LLM(model=model, task=task)
+        logger.info("loaded vLLM embedding model %s", model)
+
+    @staticmethod
+    def _vector(output):
+        # vLLM returns EmbeddingRequestOutput objects, not raw vectors.
+        embedding = getattr(getattr(output, "outputs", None), "embedding", None)
+        return embedding if embedding is not None else output
+
+    def embed(self, text: Union[str, Sequence[str]], batch_size: int = 32):
+        import numpy as np
+
+        single = isinstance(text, str)
+        payload = [text] if single else list(text)
+        outputs = self.llm.embed(payload)
+        vectors = np.asarray([self._vector(o) for o in outputs])
+        return vectors[0] if single else vectors
+
+    def embed_documents(
+        self, documents: List[Dict[str, Any]], text_key: str = "text"
+    ) -> List[Dict[str, Any]]:
+        vectors = self.embed([d[text_key] for d in documents])
+        for doc, vector in zip(documents, vectors):
+            doc["embedding"] = vector
+        return documents
+
+    def __call__(self, text):
+        return self.embed(text)
+
+
+VectorEmbedder = SentenceTransformerEmbedder
 
 _vector_model_instance = None
 
 
-def get_vector_model() -> VectorEmbedder:
-    """Return the process-wide :class:`VectorEmbedder` singleton."""
+def get_vector_model(backend: str = "sentence-transformers"):
+    """Return the shared embedder. ``backend`` is ``sentence-transformers`` or ``vllm``."""
     global _vector_model_instance
     if _vector_model_instance is None:
-        _vector_model_instance = VectorEmbedder()
+        _vector_model_instance = (
+            VLLMEmbedder() if backend == "vllm" else SentenceTransformerEmbedder()
+        )
     return _vector_model_instance

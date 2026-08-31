@@ -1,104 +1,101 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""OpenRouter chat client.
 
-"""Generation model, served through OpenRouter.
-
-Earlier revisions of this file imported ``langchain_openrouter``, which is not
-a published package -- ``pip install`` for this project could never succeed.
-OpenRouter's chat endpoint is wire-compatible with the OpenAI API, so this
-version talks to it with the official ``openai`` SDK pointed at OpenRouter's
-``base_url``, which is the integration OpenRouter's own docs recommend and
-needs no extra dependency beyond a client this project already needs.
+The published version imported ``langchain_openrouter``, a package that does not
+exist on PyPI, so this module could never be imported.  It now talks to the
+OpenRouter REST API directly through ``requests``: one dependency instead of the
+whole LangChain stack, and no invented package name.
 
 Author: Zeteng Lin (Hong Kong University of Science and Technology, Guangzhou)
 """
 
-from typing import List, Optional
+from __future__ import annotations
 
-from openai import OpenAI
+import logging
+from typing import Any, Dict, List, Optional, Sequence
 
 from ..config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL, OPENROUTER_MODEL
 
+logger = logging.getLogger(__name__)
+
+DEFAULT_SYSTEM_PROMPT = (
+    "You answer strictly from the supplied document excerpts. "
+    "If the excerpts do not contain the answer, say so instead of guessing. "
+    "When you use a number from a table, name the table's column header."
+)
+
 
 class LLMModel:
-    """Chat completion model served through OpenRouter."""
+    """Minimal OpenRouter chat-completions client."""
 
     def __init__(
         self,
         api_key: str = OPENROUTER_API_KEY,
         model_name: str = OPENROUTER_MODEL,
         base_url: str = OPENROUTER_BASE_URL,
-    ):
-        """
-        Args:
-            api_key: OpenRouter API key.
-            model_name: OpenRouter model slug, e.g. ``"deepseek/deepseek-chat"``.
-            base_url: OpenRouter's OpenAI-compatible endpoint.
-
-        Raises:
-            ValueError: If no API key is available.
-        """
+        timeout: int = 120,
+    ) -> None:
         if not api_key:
             raise ValueError(
-                "An OpenRouter API key is required: set the OPENROUTER_API_KEY "
-                "environment variable or pass api_key= explicitly."
+                "No OpenRouter API key. Set the OPENROUTER_API_KEY environment "
+                "variable; do not write the key into a source file."
             )
-
+        self.api_key = api_key
         self.model_name = model_name
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
 
-    def generate(self, prompt: str, system_prompt: Optional[str] = None) -> str:
-        """Generate a completion for a single prompt.
+    def _post(self, messages: List[Dict[str, str]], **kwargs: Any) -> str:
+        import requests
 
-        Args:
-            prompt: User prompt.
-            system_prompt: Optional system prompt.
+        response = requests.post(
+            f"{self.base_url}/chat/completions",
+            headers={
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": self.model_name,
+                "messages": messages,
+                "temperature": kwargs.get("temperature", 0.2),
+                "max_tokens": kwargs.get("max_tokens", 2048),
+            },
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
 
-        Returns:
-            The model's reply text.
-        """
+    def generate(self, prompt: str, system_prompt: Optional[str] = None, **kwargs: Any) -> str:
         messages = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
+        return self._post(messages, **kwargs)
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            temperature=0.7,
-            max_tokens=4096,
+    def rag_generate(
+        self,
+        query: str,
+        context: Sequence[str],
+        system_prompt: Optional[str] = None,
+        **kwargs: Any,
+    ) -> str:
+        excerpts = "\n\n".join(f"[Excerpt {i + 1}]\n{c}" for i, c in enumerate(context))
+        prompt = (
+            f"Document excerpts:\n\n{excerpts}\n\n"
+            f"Question: {query}\n\n"
+            "Answer using only the excerpts above."
         )
-        return response.choices[0].message.content
+        return self.generate(prompt, system_prompt or DEFAULT_SYSTEM_PROMPT, **kwargs)
 
-    def rag_generate(self, query: str, context: List[str], system_prompt: Optional[str] = None) -> str:
-        """Generate an answer to ``query`` grounded in retrieved ``context``.
-
-        Args:
-            query: User query.
-            context: Retrieved chunk texts, most relevant first.
-            system_prompt: Optional system prompt.
-
-        Returns:
-            The model's reply text.
-        """
-        context_text = "\n\n".join(f"Document {i + 1}:\n{ctx}" for i, ctx in enumerate(context))
-        rag_prompt = (
-            "Answer the user's question using only the reference documents below. "
-            "If the answer is not contained in them, say so explicitly instead of guessing.\n\n"
-            f"Reference documents:\n{context_text}\n\n"
-            f"Question:\n{query}"
-        )
-        return self.generate(rag_prompt, system_prompt)
-
-    def __call__(self, prompt: str, **kwargs) -> str:
+    def __call__(self, prompt: str, **kwargs: Any) -> str:
         return self.generate(prompt, **kwargs)
 
 
-_llm_model_instance = None
+_llm_model_instance: Optional[LLMModel] = None
 
 
 def get_llm_model() -> LLMModel:
-    """Return the process-wide :class:`LLMModel` singleton."""
     global _llm_model_instance
     if _llm_model_instance is None:
         _llm_model_instance = LLMModel()

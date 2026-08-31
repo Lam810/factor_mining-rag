@@ -1,50 +1,33 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "factor-rag"
-version = "0.1.0"
-description = "Structure-preserving RAG for visually rich documents: tables, figures and formulas survive chunking intact."
+version = "0.2.0"
+description = "Structure-aware Markdown chunking for retrieval over visually rich documents"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "Zeteng Lin", email = "zeng.bol@northeastern.edu" }]
-keywords = ["rag", "retrieval-augmented-generation", "markdown", "chunking", "document-ai", "visually-rich-documents"]
+authors = [{ name = "Zeteng Lin" }]
+keywords = ["rag", "chunking", "retrieval", "documents", "tables"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Intended Audience :: Developers",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Topic :: Text Processing :: Markup :: Markdown",
-  "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = [
-  "tqdm>=4.65",
-]
+dependencies = []
 
 [project.optional-dependencies]
-# Everything needed to run the actual retrieval + generation pipeline
-# (chunking, metrics and viz have zero dependencies beyond tqdm).
-serve = [
-  "chromadb>=0.5",
-  "numpy>=1.24",
-  "openai>=1.30",       # OpenRouter speaks the OpenAI wire protocol
-]
-dev = [
-  "pytest>=7.4",
-]
+rag = ["chromadb>=0.5", "sentence-transformers>=2.2", "requests>=2.28", "tqdm>=4.65"]
+vllm = ["vllm>=0.6"]
+dev = ["pytest>=7"]
 
 [project.urls]
 Homepage = "https://github.com/Lam810/factor_mining-rag"
-Repository = "https://github.com/Lam810/factor_mining-rag"
-
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
+Author = "https://lam810.github.io/"
 
 [tool.setuptools.packages.find]
 include = ["factor_rag*"]
-
-[tool.pytest.ini_options]
-# scripts/manual_smoke_test.py defines test_*() functions too, but it is an
-# opt-in, GPU + API-key-requiring manual script, not part of the automated
-# suite -- see its module docstring.
-testpaths = ["tests"]

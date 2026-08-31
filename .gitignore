@@ -23,5 +23,6 @@ htmlcov/
 .DS_Store
 
 # Project runtime data -- see factor_rag/config.py (FACTOR_RAG_HOME)
+.factor_rag/
 .cache/
 *.log

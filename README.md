@@ -2,190 +2,166 @@
 
 # factor-rag
 
-**Structure-preserving RAG for visually rich documents.**
-Tables, figures, and formulas survive chunking intact — instead of being sliced apart by a character counter.
+**Chunk the tables, not through them.**
 
-[![tests](https://github.com/Lam810/factor_mining-rag/actions/workflows/tests.yml/badge.svg)](https://github.com/Lam810/factor_mining-rag/actions/workflows/tests.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
-[![Zero-dependency core](https://img.shields.io/badge/core%20deps-tqdm%20only-brightgreen.svg)](pyproject.toml)
+Structure-aware Markdown chunking for RAG over visually rich documents —
+so a 48-row financial table stops arriving at your model cut in half and missing its header.
+
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-17%20passing-brightgreen.svg)](tests/)
+[![Zero heavy deps](https://img.shields.io/badge/chunker%20deps-0-orange.svg)](#install)
 
 </div>
 
 ---
 
-## The problem, in one picture
+## The problem
 
-Feed a PDF through a layout parser (MinerU, Marker, PP-StructureV2, Nougat, ...) and you get Markdown that is
-mostly *structure*: multi-page pipe tables, figure references, fenced formulas, a heading hierarchy. Almost
-every RAG tutorial then chunks that Markdown with a character-window splitter — cut every *N* characters,
-nudge the boundary to the nearest paragraph break. That splitter has no idea a table exists. It cuts a
-40-row table in half, and the second half becomes a chunk full of bare numbers with no header, no units, no
-name — unretrievable by an embedding model and unreadable by an LLM.
+Run a PDF through a layout parser — MinerU, Marker, Nougat, PP-StructureV2 — and what
+comes out is mostly *structure*: pipe tables, figure references, formulas, headings.
 
-Below is the same real-world-shaped document (a 124-line factor-attribution report, one of the three sample
-documents in [`samples/`](samples/)), chunked both ways at an identical, realistic setting
-(`chunk_size=1000`). Every bar is one line of source text, both columns share the same vertical scale, and
-red marks a table row that lost its header:
+Then a character-window chunker cuts it every 1000 characters and the structure is gone.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/structure-map-dark.svg">
-  <img alt="Chunk boundaries over one document: character-window chunking orphans 60 of 94 table rows from their header; structure-aware chunking orphans zero." src="assets/structure-map-light.svg">
+  <img alt="Chunk boundaries over one document: character-window versus structure-aware" src="assets/structure-map-light.svg">
 </picture>
 
-That is not a contrived worst case — it is the default behavior of the chunking code in most RAG tutorials
-and starter templates, on a table of perfectly ordinary size. This repository is the fix, plus the tooling
-to measure it instead of assuming it.
+Every red bar is a table row that landed in a chunk **without its header**. It is
+simultaneously unretrievable — no lexical signal left, just `| 0.31 | 0.08 |` — and
+unusable, because no model can read a headerless table. On the bundled corpus that is
+**60 of 94 table rows** — the two longest tables in the document are almost entirely orphaned.
 
-## What's actually in here
+## The fix
 
-- **`factor_rag.chunking`** — a structure-aware Markdown chunker. It parses the document into semantic
-  blocks (heading, table, fenced code, figure+caption, list, paragraph) *before* deciding where to cut, so a
-  cut only ever lands between blocks, never through one. An oversized table is split into parts that each
-  repeat the header row; an oversized code block re-opens its fence in every part; a figure is never
-  separated from its caption; every chunk is tagged with the heading breadcrumb of the section it came from.
-  Zero dependencies beyond the standard library.
-- **`factor_rag.metrics`** — turns "this chunking is better" from a vibe into a number: table integrity, the
-  fraction of table rows that keep their header, section attribution, figure/caption adjacency — computed
-  from chunk text alone, so any chunker (not just this one) can be scored on equal terms.
-- **`factor_rag.viz`** — the two figures in this README, as dependency-free SVG generation. No matplotlib, no
-  browser, no headless Chrome; `git diff` on a regenerated figure is a readable text diff.
-- **`benchmarks/run_benchmark.py`** — runs the metrics over a sample corpus and regenerates both figures. One
-  command, no GPU, no API key, fully reproducible from a clean clone.
-- **A retrieval + generation pipeline** (`factor_rag.rag_system`, `vector_db`, `document_processor`,
-  `models/`) wired to the chunker above, for going from a folder of Markdown to an answered question. This
-  half needs a GPU (for the default local embedder) and an OpenRouter API key — see
-  [Running without a GPU](#running-without-a-gpu) for the CPU path.
+`chunk_markdown()` parses the document into semantic blocks first, then packs them:
 
-## Results
+| Guarantee | What it means |
+|---|---|
+| **Tables never lose their header** | An oversized table splits by rows, and the header row is repeated in every part |
+| **Fences stay balanced** | A code or formula block is never cut mid-fence |
+| **Figures keep their captions** | An image reference and its caption stay in one chunk |
+| **Every chunk knows its section** | The heading breadcrumb is attached as text *and* metadata |
+| **It terminates** | The previous character-window splitter could move its cursor backwards and loop forever |
+| **Ids are deterministic** | SHA-1 of content and provenance, not salted `hash()` — so re-indexing updates instead of duplicating |
 
-Mean over the 3-document sample corpus in [`samples/`](samples/), `chunk_size=1000`, `chunk_overlap=200` —
-reproduce with `python benchmarks/run_benchmark.py`:
+## Measured, not asserted
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/fidelity-dark.svg">
-  <img alt="Structural fidelity after chunking: table integrity 78% to 100%, table rows keeping their header 79% to 100%, chunks that can name their section 81% to 100%, figures still beside their caption 100% to 100%." src="assets/fidelity-light.svg">
+  <img alt="Structural fidelity after chunking, baseline versus structure-aware" src="assets/fidelity-light.svg">
 </picture>
 
-| Metric | Character-window baseline | Structure-aware | 
-| --- | ---: | ---: |
-| Table integrity (whole tables kept intact) | 78% | **100%** |
-| Table rows that keep their header | 79% | **100%** |
-| Chunks that can name their own section | 81% | **100%** |
-| Figures still next to their caption | 100% | 100% |
+| Metric | Character-window | Structure-aware |
+|---|---|---|
+| Table integrity | 78% | **100%** |
+| Table rows keeping their header | 79% | **100%** |
+| Chunks that can name their section | 81% | **100%** |
+| Figures still beside their caption | 100% | **100%** |
 
-Figure/caption adjacency ties at this chunk size: the sample corpus's captions sit close enough to their
-images that even a blind character window rarely separates them. Tables are the load-bearing failure mode —
-they run for dozens of rows, so *any* fixed-size window eventually lands inside one. That is also exactly
-the content type "visually rich document" RAG exists to handle, which is why table integrity is the headline
-number here rather than a footnote.
-
-## Quickstart
+Mean over the 3-document sample corpus at `chunk_size=1000`. Reproduce from a clean clone:
 
 ```bash
-pip install "factor-rag[serve] @ git+https://github.com/Lam810/factor_mining-rag.git"
-# or, for just the chunker/metrics/viz (zero extra dependencies):
-pip install "factor-rag @ git+https://github.com/Lam810/factor_mining-rag.git"
+python benchmarks/run_benchmark.py
 ```
 
-```python
-from factor_rag import chunk_markdown, score_chunks
+No model, no API key, no GPU — the corpus is in [`samples/`](samples/) and the metrics
+are computed from chunk text alone, so any chunker can be scored on equal terms.
 
-markdown = open("quarterly_report.md", encoding="utf-8").read()
+## Install
 
-chunks = chunk_markdown(markdown, source="quarterly_report.md", chunk_size=1000, chunk_overlap=200)
-for c in chunks[:2]:
-    print(c.metadata["heading_path"], "|", c.metadata["block_kinds"])
-    print(c.text[:200], "...\n")
-
-# Score it against your own baseline chunker -- score_chunks only looks at
-# chunk text, so it works for any strategy, not just this one.
-report = score_chunks(markdown, [c.text for c in chunks])
-print(f"table integrity: {report.table_integrity:.0%}")
-```
-
-For the full retrieval + generation pipeline:
-
-```python
-import os
-os.environ["OPENROUTER_API_KEY"] = "sk-or-..."
-
-from factor_rag.rag_system import get_rag_system
-
-rag = get_rag_system()
-rag.index_directory("samples/", pattern="*.md")
-print(rag.query("Which industries drove the active return?"))
-```
-
-## Running without a GPU
-
-The chunker, metrics, and figure generation (the three modules above) need nothing but `tqdm` and run
-anywhere. The retrieval pipeline's default embedder is a 7B instruction-tuned model served through vLLM,
-which does need a GPU. To run the full pipeline on CPU, point it at a small `sentence-transformers`
-checkpoint instead:
+The chunker has **no heavy dependencies** — no torch, no vLLM, no LangChain:
 
 ```bash
-export FACTOR_RAG_VECTOR_MODEL=BAAI/bge-small-zh-v1.5
-export FACTOR_RAG_VECTOR_BACKEND=sentence-transformers
+pip install -e .
 ```
 
-(`sentence-transformers` backend wiring is a good first contribution — see [Roadmap](#roadmap).)
+For the full retrieval pipeline:
 
-## How it works
-
-```
-                    ┌────────────────────┐
-  Markdown  ───────▶│   parse_blocks()   │  heading / table / code / figure / list / paragraph
-  (from a layout    └─────────┬──────────┘
-   parser: MinerU,            │
-   Marker, PP-Struct...)      ▼
-                    ┌────────────────────┐
-                    │  chunk_markdown()  │  packs whole blocks into a budget;
-                    │                    │  splits an oversized block WITHOUT
-                    │                    │  breaking it (repeat header / re-open
-                    │                    │  fence / never split a figure)
-                    └─────────┬──────────┘
-                              ▼
-                 Chunk(text, metadata={heading_path,
-                       chunk_uid, has_table, has_figure, ...})
-                              │
-              ┌───────────────┼────────────────┐
-              ▼                                 ▼
-   score_chunks() / viz.py            embed → ChromaDB → OpenRouter LLM
-   (measure any chunker,               (factor_rag.rag_system —
-    no GPU, no deps)                    needs a GPU + API key)
+```bash
+pip install -e ".[rag]"
 ```
 
-## Roadmap
+## Use
 
-- [ ] `sentence-transformers` embedding backend, so the full pipeline runs end-to-end on CPU.
-- [ ] Ascend (昇腾) NPU backend for the embedding step, via `torch_npu`. In progress in a sibling project
-      ([`visual-document-rag`](https://github.com/Lam810/visual-document-rag)) — not yet verified on real
-      Ascend hardware, so it is listed here as planned rather than claimed.
-- [ ] A recursive variant that also parses nested structures (a table inside a list item), which current
-      layout-parser output does not produce but hand-written Markdown sometimes does.
-- [ ] FAISS / Qdrant backends alongside ChromaDB.
+Chunking alone, which is what most people want:
 
-Contributions welcome — `tests/` has 19 fast, dependency-free tests (`pytest`) covering exactly the failure
-modes described above; a PR that adds a case this suite doesn't catch is a very welcome PR.
+```python
+from factor_rag import chunk_markdown
+
+chunks = chunk_markdown(open("report.md", encoding="utf-8").read(),
+                        source="report.md", chunk_size=1000)
+
+for c in chunks:
+    print(c.metadata["heading_path"], c.metadata["has_table"], len(c.text))
+```
+
+Chunk metadata is flat scalars, so it goes straight into Chroma, FAISS or Qdrant with
+no flattening step.
+
+Score any chunking strategy against the structure in the source:
+
+```python
+from factor_rag import score_chunks, naive_chunk
+
+report = score_chunks(markdown, naive_chunk(markdown, 1000, 200))
+print(report.table_integrity, report.row_header_coverage)
+```
+
+Full pipeline:
+
+```python
+from factor_rag.rag_system import RAGSystem
+
+rag = RAGSystem()
+rag.index_directory("docs/")
+print(rag.query("What was the break-even transaction cost?"))
+```
+
+Set `OPENROUTER_API_KEY` in the environment first. Configuration is environment-driven
+(`FACTOR_RAG_HOME`, `FACTOR_RAG_CHUNK_SIZE`, `FACTOR_RAG_TOP_K`, ...); see
+[`factor_rag/config.py`](factor_rag/config.py).
+
+## What changed in 0.2
+
+This release is a repair as much as a feature. The 0.1 package could not be imported at
+all: `utils/document_processor.py` did `from ..config import ...` while the top-level
+package name contained a hyphen, and `models/llm_model.py` imported `langchain_openrouter`,
+which does not exist on PyPI. Alongside the new chunker, 0.2 fixes the non-terminating
+splitter, the process-salted document ids, the `except ValueError` that could not catch
+Chroma's `NotFoundError`, the vLLM embedding output being read as a raw vector, and the
+hardcoded `/root/autodl-fs` paths that were created as an import side effect.
+
+## Layout
+
+```
+factor_rag/
+  chunking.py     structure-aware chunker           (no dependencies)
+  metrics.py      structural-fidelity scoring       (no dependencies)
+  viz.py          SVG figures                       (no dependencies)
+  config.py       environment-driven settings
+  document_processor.py / vector_db.py / models/ / rag_system.py
+benchmarks/       reproducible measurement + figure generation
+samples/          synthetic VRD-converted corpus
+tests/            17 invariant tests
+```
 
 ## Citation
 
-If this chunker or its benchmark methodology is useful in your own work, please cite it:
-
 ```bibtex
-@software{lin2026factorrag,
+@software{lin_factor_rag,
   author  = {Lin, Zeteng},
-  title   = {factor-rag: Structure-Preserving RAG for Visually Rich Documents},
+  title   = {factor-rag: Structure-Aware Chunking for Retrieval over Visually Rich Documents},
   year    = {2026},
-  url     = {https://github.com/Lam810/factor_mining-rag},
-  note    = {Hong Kong University of Science and Technology (Guangzhou)}
+  url     = {https://github.com/Lam810/factor_mining-rag}
 }
 ```
 
-(GitHub's "Cite this repository" button, top right, generates the same citation from
-[`CITATION.cff`](CITATION.cff) in APA or BibTeX.)
-
 ## License
 
-[MIT](LICENSE) © 2026 Zeteng Lin, Hong Kong University of Science and Technology (Guangzhou)
+MIT — see [LICENSE](LICENSE).
+
+Built by **Zeteng Lin** (林泽腾), Ph.D. candidate in Data Science and Analytics,
+Information Hub, The Hong Kong University of Science and Technology (Guangzhou).
+[lam810.github.io](https://lam810.github.io/)
